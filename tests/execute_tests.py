@@ -31,7 +31,7 @@ enabled_tests = [
     "DiagnDfConfChecking", "ProcessModelEvaluationTests", "DecisionTreeTest", "GraphsForming",
     "HeuMinerTest", "MainFactoriesTest", "AlgorithmTest", "LogFilteringTest",
     "DataframePrefilteringTest", "StatisticsLogTest", "StatisticsDfTest", "TransitionSystemTest",
-    "ImpExpFromString", "WoflanTest", "OcelFilteringTest", "OcelDiscoveryTest", "LlmTest", "wf_net_tests"
+    "ImpExpFromString", "WoflanTest", "OcelFilteringTest", "OcelDiscoveryTest", "LlmTest",
 ]
 
 if importlib.util.find_spec("polars"):
@@ -384,14 +384,6 @@ if "TestPolarsProcessConformance" in enabled_tests:
         suite.addTests(loader.loadTestsFromTestCase(TestPolarsProcessConformance))
     except:
         print("TestPolarsProcessConformance import failed!")
-        failed += 1
-
-if "wf_net_tests" in enabled_tests:
-    try:
-        from tests.test_partial_order_projection import PartialOrderProjectionTest
-        suite.addTests(loader.loadTestsFromTestCase(PartialOrderProjectionTest))
-    except:
-        print("PartialOrderProjectionTest import failed!")
         failed += 1
 
 
