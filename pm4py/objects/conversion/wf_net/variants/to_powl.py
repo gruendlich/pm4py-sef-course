@@ -23,7 +23,7 @@ Contact: info@processintelligence.solutions
 from copy import copy
 from itertools import combinations
 from collections import deque
-from typing import Union, Set
+from typing import Union, Set, Optional
 
 from pm4py import PetriNet
 from pm4py.objects.petri_net.utils import petri_utils as pn_util
@@ -81,6 +81,122 @@ def locally_identical(p1, p2, transitions):
     post1 = pn_util.post_set(p1) & transitions
     post2 = pn_util.post_set(p2) & transitions
     return pre1 == pre2 and post1 == post2
+
+def _validate_unique_local_boundary(
+        places: Set[PetriNet.Place],
+        subnet_transitions: Set[PetriNet.Transition],
+        kind: str
+) -> PetriNet.Place:
+    """
+    Ensures the 'unique local start/end property' for a boundary set:
+    all places must be locally identical w.r.t. the subnet transitions.
+    Returns the chosen representative place.
+    """
+    places_list = list(places)
+    if not places_list:
+        raise Exception(f"{kind} places set must not be empty!")
+
+    representative = places_list[0]
+    for p in places_list[1:]:
+        if not locally_identical(p, representative, subnet_transitions):
+            raise Exception(f"Unique local {kind} property is violated!")
+    return representative
+
+
+def _clone_boundary_places(
+        subnet_net: PetriNet,
+        node_map: dict,
+        start_places: Set[PetriNet.Place],
+        end_places: Set[PetriNet.Place],
+        subnet_transitions: Set[PetriNet.Transition],
+) -> Tuple[PetriNet.Place, PetriNet.Place, Set[PetriNet.Place]]:
+    """
+    Clones start/end boundary places into the subnet_net and updates node_map.
+    Returns (new_start_place, new_end_place, boundary_places).
+    """
+    old_start = _validate_unique_local_boundary(start_places, subnet_transitions, kind="start")
+    new_start = clone_place(subnet_net, old_start, node_map)
+    node_map[old_start] = new_start
+
+    if start_places == end_places:
+        new_end = new_start
+    else:
+        old_end = _validate_unique_local_boundary(end_places, subnet_transitions, kind="end")
+        new_end = clone_place(subnet_net, old_end, node_map)
+        node_map[old_end] = new_end
+
+    boundary_places = set(start_places) | set(end_places)
+    return new_start, new_end, boundary_places
+
+
+def _get_or_clone_place(
+        subnet_net: PetriNet,
+        node_map: dict,
+        place: PetriNet.Place,
+        boundary_places: Set[PetriNet.Place],
+) -> Optional[PetriNet.Place]:
+    """
+    Returns a mapped/cloned place unless it's a boundary place (then None),
+    matching the original behaviour that skips additional boundary clones.
+    """
+    if place in node_map:
+        return node_map[place]
+
+    if place in boundary_places:
+        return None
+
+    return clone_place(subnet_net, place, node_map)
+
+
+def _get_or_clone_endpoint(
+        subnet_net: PetriNet,
+        node_map: dict,
+        node,
+        boundary_places: Set[PetriNet.Place],
+) -> Optional[Union[PetriNet.Place, PetriNet.Transition]]:
+    """
+    Resolves an arc endpoint:
+    - transitions are cloned earlier and must exist in node_map if in subnet
+    - places are cloned on demand, except boundary places which are skipped
+    Returns None if the endpoint should be skipped (boundary place).
+    """
+    if node in node_map:
+        return node_map[node]
+
+    if isinstance(node, PetriNet.Place):
+        return _get_or_clone_place(subnet_net, node_map, node, boundary_places)
+
+    # If we get here for a transition, it was not in node_map, so it is not part of subnet_transitions.
+    return None
+
+
+def _clone_subnet_arcs(
+        original_net: PetriNet,
+        subnet_net: PetriNet,
+        node_map: dict,
+        subnet_transitions: Set[PetriNet.Transition],
+        boundary_places: Set[PetriNet.Place],
+) -> None:
+    """
+    Clones arcs that touch subnet transitions. Skips arcs whose source/target
+    is an un-mapped boundary place (as per original code).
+    """
+    for arc in original_net.arcs:
+        source = arc.source
+        target = arc.target
+
+        if source not in subnet_transitions and target not in subnet_transitions:
+            continue
+
+        cloned_source = _get_or_clone_endpoint(subnet_net, node_map, source, boundary_places)
+        if cloned_source is None:
+            continue
+
+        cloned_target = _get_or_clone_endpoint(subnet_net, node_map, target, boundary_places)
+        if cloned_target is None:
+            continue
+
+        add_arc_from_to(cloned_source, cloned_target, subnet_net)
 
 
 # ========= Graph & Subnet Functions =========
@@ -147,52 +263,36 @@ def clone_subnet(net: PetriNet, subnet_transitions: Set[PetriNet.Transition],
     return subnet_net, mapped_start_place, mapped_end_place
 
 
-def apply_partial_order_projection(net: PetriNet, subnet_transitions: Set[PetriNet.Transition],
-                                   start_places: Set[PetriNet.Place], end_places: Set[PetriNet.Place]):
+def apply_partial_order_projection(
+        net: PetriNet,
+        subnet_transitions: Set[PetriNet.Transition],
+        start_places: Set[PetriNet.Place],
+        end_places: Set[PetriNet.Place]
+):
     subnet_net = PetriNet(f"Subnet_{next(id_generator())}")
     node_map = {}
 
-    # Clone transitions in the subnet
-    for node in subnet_transitions:
-        clone_transition(subnet_net, node, node_map)
+    # 1) Clone transitions in the subnet
+    for t in subnet_transitions:
+        clone_transition(subnet_net, t, node_map)
 
-    list_start_places = list(start_places)
-    old_start = list_start_places[0]
-    for place in list_start_places[1:]:
-        if not locally_identical(place, old_start, subnet_transitions):
-            raise Exception("Unique local start property is violated!")
-    new_start_place = clone_place(subnet_net, old_start, node_map)
-    node_map[old_start] = new_start_place
+    # 2) Validate and clone boundary places (start/end)
+    new_start_place, new_end_place, boundary_places = _clone_boundary_places(
+        subnet_net=subnet_net,
+        node_map=node_map,
+        start_places=start_places,
+        end_places=end_places,
+        subnet_transitions=subnet_transitions
+    )
 
-    if start_places == end_places:
-        new_end_place = new_start_place
-    else:
-        list_end_places = list(end_places)
-        old_end = list_end_places[0]
-        for place in list_end_places[1:]:
-            if not locally_identical(place, old_end, subnet_transitions):
-                raise Exception("Unique local end property is violated!")
-        new_end_place = clone_place(subnet_net, old_end, node_map)
-        node_map[old_end] = new_end_place
-
-    # Add arcs and remaining places of the subnet
-    for arc in net.arcs:
-        source = arc.source
-        target = arc.target
-        if source in subnet_transitions or target in subnet_transitions:
-            if source in node_map:
-                cloned_source = node_map[source]
-            else:
-                if source in start_places or source in end_places:
-                    continue
-                cloned_source = clone_place(subnet_net, source, node_map)
-            if target in node_map:
-                cloned_target = node_map[target]
-            else:
-                if target in start_places or target in end_places:
-                    continue
-                cloned_target = clone_place(subnet_net, target, node_map)
-            add_arc_from_to(cloned_source, cloned_target, subnet_net)
+    # 3) Clone arcs and internal places, respecting boundary skip rules
+    _clone_subnet_arcs(
+        original_net=net,
+        subnet_net=subnet_net,
+        node_map=node_map,
+        subnet_transitions=subnet_transitions,
+        boundary_places=boundary_places
+    )
 
     return subnet_net, new_start_place, new_end_place
 
