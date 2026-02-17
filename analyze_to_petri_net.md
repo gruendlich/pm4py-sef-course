@@ -61,3 +61,65 @@ Line 315: if return_flow_trans_map: (+1)
 **documentation of the function:**
 It explains what the function does ("Converts a BPMN graph to an accepting Petri net") and explains the parameters, however it does not explain the different possible outcomes induced by different branches taken, the internal logic will be understood by reading the code
 
+# Part 2: Coverage measurement & improvement
+## Task 1: DIY Coverage Measurement
+We implemented manual instrumentation for the `apply` function in `to_petri_net.py` by injecting `mark_branch(id)` calls at decision points.
+
+### Results
+Running `tests/bpmn_tests.py` (specifically `test_bpmn_to_petri_net`) produced the following coverage:
+
+**Covered Branches (31/42 = ~74%):**
+```
+--- Manual Branch Coverage Report ---
+
+  "branch_2_parameters_not_none": true,
+  "branch_4_return_flow_trans_map_false": true,
+  "branch_5_loop_flows": true,
+  "branch_6_is_sequence_flow": true,
+  "branch_7_source_not_in_count": true,
+  "branch_8_target_not_in_count": true,
+  "branch_9_loop_flows_2": true,
+  "branch_10_is_sequence_flow_2": true,
+  "branch_13_no_inclusive_gateway": true,
+  "branch_14_loop_nodes": true,
+  "branch_15_supported_node_type": true,
+  "branch_19_use_id_false": true,
+  "branch_20_label_is_none": true,
+  "branch_26_not_gateway": true,
+  "branch_21_is_parallel_or_inclusive_gateway": true,
+  "branch_22_gateway_source_count_gt_1": true,
+  "branch_25_gateway_target_count_le_1": true,
+  "branch_23_gateway_source_count_le_1": true,
+  "branch_24_gateway_target_count_gt_1": true,
+  "branch_17_node_not_in_target_count": true,
+  "branch_27_is_start_event": true,
+  "branch_16_node_not_in_source_count": true,
+  "branch_28_is_end_event": true,
+  "branch_29_loop_flows_3": true,
+  "branch_30_is_sequence_flow_3": true,
+  "branch_31_flow_source_target_valid": true,
+  "branch_32_source_is_place": true,
+  "branch_33_target_is_place": true,
+  "branch_38_enable_reduction_true": true,
+  "branch_39_loop_cleanup_places": true,
+  "branch_42_return_standard": true
+}
+-------------------------------------
+```
+**Missing Branches (11/42):**
+- `branch_1_parameters_none`: **Handle implicit parameters.** Triggered when the function is called without providing a `parameters` dictionary (defaulting to None).
+- `branch_3_return_flow_trans_map_true`: **Extended Return Mode.** Triggered when `RETURN_FLOW_TRANS_MAP` is set to True, disabling reduction and preparing to return extra mapping data.
+- `branch_11_inclusive_gateway_exit`: **Inclusive Split Detection.** Triggered when an `InclusiveGateway` node is found to have multiple outgoing sequence flows (OR-split).
+- `branch_12_inclusive_gateway_entry`: **Inclusive Join Detection.** Triggered when an `InclusiveGateway` node is found to have multiple incoming sequence flows (OR-join).
+- `branch_18_use_id_true`: **ID-based Naming.** Triggered when `USE_ID` is set to True, forcing the Petri net transitions to use IDs as labels/names instead of node names.
+- `branch_34_inclusive_gateway_optimization`: **OR-Gateway Optimization Logic.** The entry point for a complex block that adds invisible transitions between OR-splits and OR-joins to ensure model soundness.
+- `branch_35_loop_inclusive_exit`: **Optimization Loop.** Part of the optimization logic that iterates through all identified OR-splits.
+- `branch_36_pl1_in_keys`: **Reachability Check.** specific check within the optimization to ensure the OR-split is part of the calculated reachability graph.
+- `branch_37_output_places_exist`: **Link Creation.** Triggered when a path is found between an OR-split and OR-join, prompting the creation of a synchronizing invisible transition.
+- `branch_40_remove_unconnected_place`: **Cleanup Logic.** Triggered if the conversion results in isolated places (no arcs in/out), removing them from the final net.
+- `branch_41_return_flow_trans_map`: **Extended Return Statement.** The specific return statement executing when extended return values (mappings) are requested.
+
+### Quality and Limitations
+- **Quality:** The manual instrumentation is robust for block coverage. It accounts for `elif` chains and specific boolean conditions implicitly by where we placed the markers.
+- **Limitations:** It requires intrusive code changes. It cannot easily track "condition coverage" (e.g., if `A and B` is false because A is false or B is false) without breaking up compound statements. 
+- **Comparison:** We don't have an automated tool setup for comparison, but the results align with expectations
