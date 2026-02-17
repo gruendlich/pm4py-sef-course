@@ -123,3 +123,21 @@ Running `tests/bpmn_tests.py` (specifically `test_bpmn_to_petri_net`) produced t
 - **Quality:** The manual instrumentation is robust for block coverage. It accounts for `elif` chains and specific boolean conditions implicitly by where we placed the markers.
 - **Limitations:** It requires intrusive code changes. It cannot easily track "condition coverage" (e.g., if `A and B` is false because A is false or B is false) without breaking up compound statements. 
 - **Comparison:** We don't have an automated tool setup for comparison, but the results align with expectations
+
+## Task 2: Coverage Improvement
+
+We created `tests/bpmn_coverage_test.py` which specifically targets the parameter-driven branches.
+Running this new test suite successfully covered:
+- `branch_1_parameters_none` (Tested by calling `apply(bpmn, parameters=None)`)
+- `branch_18_use_id_true` (Tested by calling `apply(..., parameters={USE_ID: True})`)
+- `branch_3_return_flow_trans_map_true` & `branch_41_return_flow_trans_map` (Tested by enabling the return map parameter)
+
+**Impact:**
+- Before: 31 branches covered.
+- After (Union of both test suites): 31 + 4 (new unique branches) = **35/42** branches covered.
+- Improvement: Coverage increased from ~74% to ~83%.
+
+**Remaining Weak Spots:**
+- The complex logic for **Inclusive Gateway Optimization** (`branch_11`, `branch_12`, `branch_34`, etc.) remains uncovered. This logic requires specific graph structures (multiple flows entering/exiting inclusive gateways) to trigger. Achieving coverage here would require constructing a specific BPMN graph with these patterns.
+
+
