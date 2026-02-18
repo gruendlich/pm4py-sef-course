@@ -56,7 +56,7 @@ def merge_activities(fp1, fp2):
             .union(set(x[1] for x in fp2["parallel"]))
         )
     )
-    return sorted(list(set(activities1).union(set(activities2))))
+    return sorted(list(set(activities1).union(set(activities2)))), activities1, activities2
 
 def apply(
     fp1: Dict[str, Any],
@@ -89,7 +89,7 @@ def apply(
             "footprints visualizer does not work on list of footprints!"
         )
 
-    activities = merge_activities(fp1, fp2)
+    activities, activities1, activities2 = merge_activities(fp1, fp2)
 
     image_format = exec_utils.get_param_value(
         Parameters.FORMAT, parameters, "png"
