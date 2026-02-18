@@ -59,13 +59,13 @@ class ComparisonSymmetricTest(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             comparison_symmetric.apply(fp_list, fp_valid)
         
-        self.assertIn("function does not work on list, has to be dictionary", str(context.exception))
+        self.assertIn("footprints visualizer does not work on list of footprints!", str(context.exception))
 
         # Test with second parameter as list
         with self.assertRaises(Exception) as context2:
             comparison_symmetric.apply(fp_valid, fp_list)
         
-        self.assertIn("function does not work on list, has to be dictionary", str(context2.exception))
+        self.assertIn("footprints visualizer does not work on list of footprints!", str(context2.exception))
 
     def test_graph_title_enabled(self):
         """Visualization with graph title enabled"""
