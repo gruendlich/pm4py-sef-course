@@ -31,7 +31,7 @@ enabled_tests = [
     "DiagnDfConfChecking", "ProcessModelEvaluationTests", "DecisionTreeTest", "GraphsForming",
     "HeuMinerTest", "MainFactoriesTest", "AlgorithmTest", "LogFilteringTest",
     "DataframePrefilteringTest", "StatisticsLogTest", "StatisticsDfTest", "TransitionSystemTest",
-    "ImpExpFromString", "WoflanTest", "OcelFilteringTest", "OcelDiscoveryTest", "LlmTest",
+    "ImpExpFromString", "WoflanTest", "OcelFilteringTest", "OcelDiscoveryTest", "LlmTest", "AlignmentTest"
 ]
 
 if importlib.util.find_spec("polars"):
@@ -58,6 +58,14 @@ if not importlib.util.find_spec("lxml"):
     failed += 1
 
 # Now try to import and add each test class to the suite
+if "AlignmentTest" in enabled_tests:
+    try:
+        from tests.tests_apply import AlignmentTest
+        suite.addTests(loader.loadTestsFromTestCase(AlignmentTest))
+    except:
+        print("AlignmentTest import failed!")
+        failed += 1
+
 if "SimplifiedInterfaceTest" in enabled_tests:
     try:
         from tests.simplified_interface import SimplifiedInterfaceTest

@@ -13,14 +13,14 @@
           <text>1</text>
         </initialMarking>
       </place>
-      <place id="sink">
-        <name>
-          <text>sink</text>
-        </name>
-      </place>
       <place id="p_1">
         <name>
           <text>p_1</text>
+        </name>
+      </place>
+      <place id="sink">
+        <name>
+          <text>sink</text>
         </name>
       </place>
       <transition id="name_1">
@@ -33,10 +33,10 @@
           <text>label_2</text>
         </name>
       </transition>
-      <arc id="2426509960768" source="source" target="name_1"/>
-      <arc id="2426509961056" source="name_1" target="p_1"/>
-      <arc id="2426509961920" source="name_2" target="sink"/>
-      <arc id="2426509962688" source="p_1" target="name_2"/>
+      <arc id="2406914463200" source="source" target="name_1"/>
+      <arc id="2406914462432" source="name_2" target="sink"/>
+      <arc id="2406914464688" source="p_1" target="name_2"/>
+      <arc id="2406914465696" source="name_1" target="p_1"/>
     </page>
     <finalmarkings>
       <marking>

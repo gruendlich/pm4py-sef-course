@@ -46,7 +46,6 @@ def apply(ocel: OCEL, parameters: Optional[Dict[Any, Any]] = None) -> OCEL:
         Consistent OCEL
     """
 
-    print("apply CALLED")
     FN = "apply"
 
     if parameters is None:
