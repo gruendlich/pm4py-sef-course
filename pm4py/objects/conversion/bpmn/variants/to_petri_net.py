@@ -78,55 +78,8 @@ def build_digraph_from_petri_net(net):
     return graph
 
 
-def apply(bpmn_graph, parameters=None):
-    """
-    Converts a BPMN graph to an accepting Petri net
 
-    Parameters
-    --------------
-    bpmn_graph
-        BPMN graph
-    parameters
-        Parameters of the algorithm:
-        - Parameters.USE_ID => (default: False) uses the IDs of the objects instead of their labels in the conversion
-        - Parameters.ENABLE_REDUCTION => reduces the invisible transitions
-        - Parameters.RETURN_FLOW_TRANS_MAP => returns additional information on the conversion:
-                                                (iv) the places of the obtained Petri net that are corresponding to each
-                                                    BPMN flow.
-                                                (v) the transitions of the Petri net related to the nodes of the BPMN
-                                                    diagram.
-
-    Returns
-    --------------
-    net
-        Petri net
-    im
-        Initial marking
-    fm
-        Final marking
-    """
-    if parameters is None:
-        mark_branch("branch_1_parameters_none")
-        parameters = {}
-    else:
-        mark_branch("branch_2_parameters_not_none")
-
-    from pm4py.objects.bpmn.obj import BPMN
-
-    use_id = exec_utils.get_param_value(Parameters.USE_ID, parameters, False)
-    return_flow_trans_map = exec_utils.get_param_value(
-        Parameters.RETURN_FLOW_TRANS_MAP, parameters, False
-    )
-    enable_reduction = exec_utils.get_param_value(
-        Parameters.ENABLE_REDUCTION, parameters, True
-    )
-
-    if return_flow_trans_map:
-        mark_branch("branch_3_return_flow_trans_map_true")
-        enable_reduction = False
-    else:
-        mark_branch("branch_4_return_flow_trans_map_false")
-
+def _initialize_petri_net():
     net = PetriNet("")
     source_place = PetriNet.Place("source")
     net.places.add(source_place)
@@ -136,66 +89,10 @@ def apply(bpmn_graph, parameters=None):
     fm = Marking()
     im[source_place] = 1
     fm[sink_place] = 1
+    return net, im, fm, source_place, sink_place
 
-    # keep this correspondence for adding invisible transitions for OR-gateways
-    inclusive_gateway_exit = set()
-    inclusive_gateway_entry = set()
 
-    flow_place = {}
-    source_count = {}
-    target_count = {}
-    for flow in bpmn_graph.get_flows():
-        mark_branch("branch_5_loop_flows")
-        if isinstance(flow, BPMN.SequenceFlow):
-            mark_branch("branch_6_is_sequence_flow")
-            source = flow.get_source()
-            target = flow.get_target()
-            place = PetriNet.Place(str(flow.get_id()))
-            net.places.add(place)
-            flow_place[flow] = place
-            if source not in source_count:
-                mark_branch("branch_7_source_not_in_count")
-                source_count[source] = 0
-            if target not in target_count:
-                mark_branch("branch_8_target_not_in_count")
-                target_count[target] = 0
-            source_count[source] = source_count[source] + 1
-            target_count[target] = target_count[target] + 1
-
-    for flow in bpmn_graph.get_flows():
-        mark_branch("branch_9_loop_flows_2")
-        if isinstance(flow, BPMN.SequenceFlow):
-            mark_branch("branch_10_is_sequence_flow_2")
-            source = flow.get_source()
-            target = flow.get_target()
-            place = PetriNet.Place(str(flow.get_id()))
-            if (
-                isinstance(source, BPMN.InclusiveGateway)
-                and source_count[source] > 1
-            ):
-                mark_branch("branch_11_inclusive_gateway_exit")
-                inclusive_gateway_exit.add(place.name)
-            elif (
-                isinstance(target, BPMN.InclusiveGateway)
-                and target_count[target] > 1
-            ):
-                mark_branch("branch_12_inclusive_gateway_entry")
-                inclusive_gateway_entry.add(place.name)
-            else:
-                mark_branch("branch_13_no_inclusive_gateway")
-
-    # remove possible places that are both in inclusive_gateway_exit and inclusive_gateway_entry,
-    # because we do not need to add invisibles in this situation
-    incl_gat_set_inters = inclusive_gateway_entry.intersection(
-        inclusive_gateway_exit
-    )
-    inclusive_gateway_exit = inclusive_gateway_exit.difference(
-        incl_gat_set_inters
-    )
-    inclusive_gateway_entry = inclusive_gateway_entry.difference(
-        incl_gat_set_inters
-    )
-
+def _process_bpmn_nodes(bpmn_graph, net, source_count, target_count, use_id, source_place, sink_place):
     nodes_entering = {}
     nodes_exiting = {}
     trans_map = {}
@@ -291,7 +188,11 @@ def apply(bpmn_graph, parameters=None):
                 add_arc_from_to(exiting_place, end_transition, net)
                 add_arc_from_to(end_transition, sink_place, net)
                 trans_map[node].append(end_transition)
+    
+    return nodes_entering, nodes_exiting, trans_map
 
+
+def _connect_flows(bpmn_graph, net, nodes_entering, nodes_exiting, trans_map, flow_place):
     for flow in bpmn_graph.get_flows():
         mark_branch("branch_29_loop_flows_3")
         if isinstance(flow, BPMN.SequenceFlow):
@@ -323,6 +224,8 @@ def apply(bpmn_graph, parameters=None):
                 add_arc_from_to(source_object, flow_place[flow], net)
                 add_arc_from_to(flow_place[flow], target_object, net)
 
+
+def _handle_inclusive_gateways(net, inclusive_gateway_exit, inclusive_gateway_entry):
     if inclusive_gateway_exit and inclusive_gateway_entry:
         mark_branch("branch_34_inclusive_gateway_optimization")
         # do the following steps if there are inclusive gateways:
@@ -354,6 +257,125 @@ def apply(bpmn_graph, parameters=None):
                     add_arc_from_to(
                         inv_trans, inv_places[output_places[0][0]], net
                     )
+
+
+def apply(bpmn_graph, parameters=None):
+    """
+    Converts a BPMN graph to an accepting Petri net
+
+    Parameters
+    --------------
+    bpmn_graph
+        BPMN graph
+    parameters
+        Parameters of the algorithm:
+        - Parameters.USE_ID => (default: False) uses the IDs of the objects instead of their labels in the conversion
+        - Parameters.ENABLE_REDUCTION => reduces the invisible transitions
+        - Parameters.RETURN_FLOW_TRANS_MAP => returns additional information on the conversion:
+                                                (iv) the places of the obtained Petri net that are corresponding to each
+                                                    BPMN flow.
+                                                (v) the transitions of the Petri net related to the nodes of the BPMN
+                                                    diagram.
+
+    Returns
+    --------------
+    net
+        Petri net
+    im
+        Initial marking
+    fm
+        Final marking
+    """
+    if parameters is None:
+        mark_branch("branch_1_parameters_none")
+        parameters = {}
+    else:
+        mark_branch("branch_2_parameters_not_none")
+
+    from pm4py.objects.bpmn.obj import BPMN
+
+    use_id = exec_utils.get_param_value(Parameters.USE_ID, parameters, False)
+    return_flow_trans_map = exec_utils.get_param_value(
+        Parameters.RETURN_FLOW_TRANS_MAP, parameters, False
+    )
+    enable_reduction = exec_utils.get_param_value(
+        Parameters.ENABLE_REDUCTION, parameters, True
+    )
+
+    if return_flow_trans_map:
+        mark_branch("branch_3_return_flow_trans_map_true")
+        enable_reduction = False
+    else:
+        mark_branch("branch_4_return_flow_trans_map_false")
+
+    net, im, fm, source_place, sink_place = _initialize_petri_net()
+
+    # keep this correspondence for adding invisible transitions for OR-gateways
+    inclusive_gateway_exit = set()
+    inclusive_gateway_entry = set()
+
+    flow_place = {}
+    source_count = {}
+    target_count = {}
+    for flow in bpmn_graph.get_flows():
+        mark_branch("branch_5_loop_flows")
+        if isinstance(flow, BPMN.SequenceFlow):
+            mark_branch("branch_6_is_sequence_flow")
+            source = flow.get_source()
+            target = flow.get_target()
+            place = PetriNet.Place(str(flow.get_id()))
+            net.places.add(place)
+            flow_place[flow] = place
+            if source not in source_count:
+                mark_branch("branch_7_source_not_in_count")
+                source_count[source] = 0
+            if target not in target_count:
+                mark_branch("branch_8_target_not_in_count")
+                target_count[target] = 0
+            source_count[source] = source_count[source] + 1
+            target_count[target] = target_count[target] + 1
+
+    for flow in bpmn_graph.get_flows():
+        mark_branch("branch_9_loop_flows_2")
+        if isinstance(flow, BPMN.SequenceFlow):
+            mark_branch("branch_10_is_sequence_flow_2")
+            source = flow.get_source()
+            target = flow.get_target()
+            place = PetriNet.Place(str(flow.get_id()))
+            if (
+                isinstance(source, BPMN.InclusiveGateway)
+                and source_count[source] > 1
+            ):
+                mark_branch("branch_11_inclusive_gateway_exit")
+                inclusive_gateway_exit.add(place.name)
+            elif (
+                isinstance(target, BPMN.InclusiveGateway)
+                and target_count[target] > 1
+            ):
+                mark_branch("branch_12_inclusive_gateway_entry")
+                inclusive_gateway_entry.add(place.name)
+            else:
+                mark_branch("branch_13_no_inclusive_gateway")
+
+    # remove possible places that are both in inclusive_gateway_exit and inclusive_gateway_entry,
+    # because we do not need to add invisibles in this situation
+    incl_gat_set_inters = inclusive_gateway_entry.intersection(
+        inclusive_gateway_exit
+    )
+    inclusive_gateway_exit = inclusive_gateway_exit.difference(
+        incl_gat_set_inters
+    )
+    inclusive_gateway_entry = inclusive_gateway_entry.difference(
+        incl_gat_set_inters
+    )
+
+    nodes_entering, nodes_exiting, trans_map = _process_bpmn_nodes(
+        bpmn_graph, net, source_count, target_count, use_id, source_place, sink_place
+    )
+
+    _connect_flows(bpmn_graph, net, nodes_entering, nodes_exiting, trans_map, flow_place)
+
+    _handle_inclusive_gateways(net, inclusive_gateway_exit, inclusive_gateway_entry)
 
     if enable_reduction:
         mark_branch("branch_38_enable_reduction_true")

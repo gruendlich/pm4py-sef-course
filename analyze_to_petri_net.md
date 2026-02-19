@@ -140,7 +140,7 @@ Running this new test suite successfully covered:
 
 ## Task 3: Refactoring
 
-Refactoring Plan to Reduce Complexity in 
+### Refactoring Plan to Reduce Complexity in 
 to_petri_net.py
 Current Status: The apply function has a Cyclomatic Complexity Number (CCN) of 52 (according to Lizard) or 38 (manual count), which is significantly higher than the recommended limit (usually 15-20). This "God Function" handles initialization, traversal, logic mapping, and optimization all in one place.
 
@@ -160,4 +160,28 @@ Iterate through BPMN flows and add arcs between the Petri net elements created i
 
 4. _handle_inclusive_gateways(net, inclusive_gateway_exit, inclusive_gateway_entry)
 Execute the specific optimization logic for OR-gateways (calculating shortest paths and adding invisible transitions).
+
+### Refactoring Implementation
+
+We have successfully refactored the `apply` function in `pm4py.objects.conversion.bpmn.variants.to_petri_net`.
+Tests Passed: tests/bpmn_coverage_test.py confirmed that functionality and coverage are preserved.
+
+Complexity Reduced:
+apply: 52 -> 20
+_process_bpmn_nodes: 19
+_handle_inclusive_gateways: 9
+_connect_flows: 7
+_initialize_petri_net: 1
+
+================================================
+  NLOC    CCN   token  PARAM  length  location  
+------------------------------------------------
+       4      1     25      0       4 dump_coverage@32-35@pm4py/objects/conversion/bpmn/variants/to_petri_net.py
+       2      1     11      1       2 mark_branch@39-40@pm4py/objects/conversion/bpmn/variants/to_petri_net.py
+      11      7     91      1      25 build_digraph_from_petri_net@54-78@pm4py/objects/conversion/bpmn/variants/to_petri_net.py
+      11      1     74      0      11 _initialize_petri_net@82-92@pm4py/objects/conversion/bpmn/variants/to_petri_net.py
+      92     19    608      7      98 _process_bpmn_nodes@95-192@pm4py/objects/conversion/bpmn/variants/to_petri_net.py
+      28      7    217      6      31 _connect_flows@195-225@pm4py/objects/conversion/bpmn/variants/to_petri_net.py
+      27      9    184      3      32 _handle_inclusive_gateways@228-259@pm4py/objects/conversion/bpmn/variants/to_petri_net.py
+      95     20    543      2     139 apply@262-400@pm4py/objects/conversion/bpmn/variants/to_petri_net.py
 
