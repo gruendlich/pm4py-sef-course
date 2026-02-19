@@ -25,6 +25,8 @@ from typing import Optional, Dict, Any
 import warnings
 from pm4py.util import pandas_utils
 
+from assignment_utilities.manual_coverage_helper import hit
+
 
 def apply(ocel: OCEL, parameters: Optional[Dict[Any, Any]] = None) -> OCEL:
     """
@@ -43,7 +45,11 @@ def apply(ocel: OCEL, parameters: Optional[Dict[Any, Any]] = None) -> OCEL:
     ocel
         Consistent OCEL
     """
+
+    FN = "apply"
+
     if parameters is None:
+        hit(FN, 0)
         parameters = {}
 
     # Store frequently accessed column names locally to reduce attribute lookups
@@ -65,8 +71,10 @@ def apply(ocel: OCEL, parameters: Optional[Dict[Any, Any]] = None) -> OCEL:
 
     # Process each dataframe
     for tab, columns in fields.items():
+        hit(FN, 11)
         # Skip processing if attribute doesn't exist
         if not hasattr(ocel, tab):
+            hit(FN, 1)
             continue
 
         # Get dataframe
@@ -74,16 +82,23 @@ def apply(ocel: OCEL, parameters: Optional[Dict[Any, Any]] = None) -> OCEL:
 
         # Skip empty dataframes
         if df.empty:
+            hit(FN, 2)
             continue
 
         # Filter to only columns that exist in this dataframe
-        valid_columns = [col for col in columns if col in df.columns]
+        for col in columns:
+            hit(FN, 12)
+            if col in df.columns:
+                hit(FN, 3)
+                valid_columns = [col]
         if not valid_columns:
+            hit(FN, 4)
             continue
 
         # Check for NA values - only create mask if needed
         has_na = df[valid_columns].isna().any().any()
         if has_na:
+            hit(FN, 5)
             # Create mask for rows without NA values
             valid_rows = ~df[valid_columns].isna().any(axis=1)
             df = df.loc[valid_rows]
@@ -92,16 +107,19 @@ def apply(ocel: OCEL, parameters: Optional[Dict[Any, Any]] = None) -> OCEL:
 
         # Convert columns to string type
         for col in valid_columns:
+            hit(FN, 13)
             df[col] = df[col].astype(str)
 
         # Efficiently filter out empty strings
         # Create a single mask for all columns and apply once
         valid_rows = pandas_utils.DATAFRAME.Series(True, index=df.index)
         for col in valid_columns:
+            hit(FN, 14)
             valid_rows &= (df[col].str.len() > 0)
 
         # Only filter if we found empty strings
         if not valid_rows.all():
+            hit(FN, 6)
             df = df.loc[valid_rows]
 
         # Update OCEL attribute
@@ -113,13 +131,17 @@ def apply(ocel: OCEL, parameters: Optional[Dict[Any, Any]] = None) -> OCEL:
 
     # Only check if there are rows to check
     if len(events_df) > 0:
+        hit(FN, 7)
         num_ev_ids = events_df[event_id_col].nunique()
         if num_ev_ids < len(events_df):
+            hit(FN, 8)
             warnings.warn("The event identifiers in the OCEL are not unique!")
 
     if len(objects_df) > 0:
+        hit(FN, 9)
         num_obj_ids = objects_df[object_id_col].nunique()
         if num_obj_ids < len(objects_df):
+            hit(FN, 10)
             warnings.warn("The object identifiers in the OCEL are not unique!")
 
     ocel.relations[qualifier_col] = ocel.relations[qualifier_col].fillna("")

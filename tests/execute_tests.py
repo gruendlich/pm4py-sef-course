@@ -34,7 +34,7 @@ enabled_tests = [
     "HeuMinerTest", "MainFactoriesTest", "AlgorithmTest", "LogFilteringTest",
     "DataframePrefilteringTest", "StatisticsLogTest", "StatisticsDfTest", "TransitionSystemTest",
     "ImpExpFromString", "WoflanTest", "OcelFilteringTest", "OcelDiscoveryTest", "LlmTest", "wf_net_tests",
-    "ComparisonSymmetricTest"
+    "ComparisonSymmetricTest", "AlignmentTest"
 ]
 
 if importlib.util.find_spec("polars"):
@@ -61,6 +61,14 @@ if not importlib.util.find_spec("lxml"):
     failed += 1
 
 # Now try to import and add each test class to the suite
+if "AlignmentTest" in enabled_tests:
+    try:
+        from tests.tests_apply import AlignmentTest
+        suite.addTests(loader.loadTestsFromTestCase(AlignmentTest))
+    except:
+        print("AlignmentTest import failed!")
+        failed += 1
+
 if "SimplifiedInterfaceTest" in enabled_tests:
     try:
         from tests.simplified_interface import SimplifiedInterfaceTest
@@ -417,6 +425,7 @@ def main():
 
         mch.init_function("apply_partial_order_projection", slots=20)
         mch.init_function("apply_comparison_symmetric", slots=23)
+        mch.init_function("apply", slots=20)
         runner = unittest.TextTestRunner()
         result = runner.run(suite)
         manual_report = mch.report()
