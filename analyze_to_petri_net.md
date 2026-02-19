@@ -139,3 +139,4 @@ Running this new test suite successfully covered:
 - The complex logic for **Inclusive Gateway Optimization** (`branch_11`, `branch_12`, `branch_34`, etc.) remains uncovered. This logic requires specific graph structures (multiple flows entering/exiting inclusive gateways) to trigger. Achieving coverage here would require constructing a specific BPMN graph with these patterns.
 
 
+
