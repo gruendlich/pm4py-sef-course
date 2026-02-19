@@ -58,6 +58,30 @@ def merge_activities(fp1, fp2):
     )
     return sorted(list(set(activities1).union(set(activities2)))), activities1, activities2
 
+def compare_activities(activities1, activities2, a1, a2, fp1, fp2):
+    symb_1 = "?"
+    symb_2 = "?"
+
+    if a1 in activities1 and a2 in activities1:
+        symb_1 = XOR_SYMBOL
+        if (a1, a2) in fp1["parallel"]:
+            symb_1 = PARALLEL_SYMBOL
+        elif (a1, a2) in fp1["sequence"]:
+            symb_1 = SEQUENCE_SYMBOL
+        elif (a2, a1) in fp1["sequence"]:
+            symb_1 = PREV_SYMBOL
+
+        if a1 in activities2 and a2 in activities2:
+            symb_2 = XOR_SYMBOL
+            if (a1, a2) in fp2["parallel"]:
+                symb_2 = PARALLEL_SYMBOL
+            elif (a1, a2) in fp2["sequence"]:
+                symb_2 = SEQUENCE_SYMBOL
+            elif (a2, a1) in fp2["sequence"]:
+                symb_2 = PREV_SYMBOL
+
+    return symb_1, symb_2        
+
 def apply(
     fp1: Dict[str, Any],
     fp2: Dict[str, Any],
@@ -131,26 +155,7 @@ def apply(
     for a1 in activities:
         footprints_table.append("<tr><td><b>" + a1 + "</b></td>")
         for a2 in activities:
-            symb_1 = "?"
-            symb_2 = "?"
-
-            if a1 in activities1 and a2 in activities1:
-                symb_1 = XOR_SYMBOL
-                if (a1, a2) in fp1["parallel"]:
-                    symb_1 = PARALLEL_SYMBOL
-                elif (a1, a2) in fp1["sequence"]:
-                    symb_1 = SEQUENCE_SYMBOL
-                elif (a2, a1) in fp1["sequence"]:
-                    symb_1 = PREV_SYMBOL
-
-            if a1 in activities2 and a2 in activities2:
-                symb_2 = XOR_SYMBOL
-                if (a1, a2) in fp2["parallel"]:
-                    symb_2 = PARALLEL_SYMBOL
-                elif (a1, a2) in fp2["sequence"]:
-                    symb_2 = SEQUENCE_SYMBOL
-                elif (a2, a1) in fp2["sequence"]:
-                    symb_2 = PREV_SYMBOL
+            symb_1, symb_2 = compare_activities(activities1, activities2, a1, a2, fp1, fp2)
 
             if symb_1 == symb_2:
                 footprints_table.append(
