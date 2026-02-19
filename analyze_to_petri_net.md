@@ -138,5 +138,26 @@ Running this new test suite successfully covered:
 **Remaining Weak Spots:**
 - The complex logic for **Inclusive Gateway Optimization** (`branch_11`, `branch_12`, `branch_34`, etc.) remains uncovered. This logic requires specific graph structures (multiple flows entering/exiting inclusive gateways) to trigger. Achieving coverage here would require constructing a specific BPMN graph with these patterns.
 
+## Task 3: Refactoring
 
+Refactoring Plan to Reduce Complexity in 
+to_petri_net.py
+Current Status: The apply function has a Cyclomatic Complexity Number (CCN) of 52 (according to Lizard) or 38 (manual count), which is significantly higher than the recommended limit (usually 15-20). This "God Function" handles initialization, traversal, logic mapping, and optimization all in one place.
+
+Goal: Break down apply into smaller, single-purpose helper functions to improve readability and reduce individual function complexity.
+
+Proposed New Structure:
+We can extract 4 distinct helper functions to handle specific logical blocks:
+
+1. _initialize_petri_net()
+Create the PetriNet object, source/sink places, and initial/final markings.
+
+2. _process_bpmn_nodes(bpmn_graph, net, source_count, target_count, ...)
+Iterate through all BPMN nodes (Tasks, Gateways, Events) and create their corresponding Petri net transitions and places.
+
+3. _connect_flows(bpmn_graph, net, nodes_entering, nodes_exiting, ...)
+Iterate through BPMN flows and add arcs between the Petri net elements created in the previous step.
+
+4. _handle_inclusive_gateways(net, inclusive_gateway_exit, inclusive_gateway_entry)
+Execute the specific optimization logic for OR-gateways (calculating shortest paths and adding invisible transitions).
 
