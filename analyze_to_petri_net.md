@@ -122,3 +122,4 @@ Running `tests/bpmn_tests.py` (specifically `test_bpmn_to_petri_net`) produced t
 - **Limitations:** It requires intrusive code changes. It cannot easily track "condition coverage" (e.g., if `A and B` is false because A is false or B is false) without breaking up compound statements. 
 - **Comparison:** We don't have an automated tool setup for comparison, but the results align with expectations
 
+
