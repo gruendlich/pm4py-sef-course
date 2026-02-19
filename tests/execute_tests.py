@@ -4,7 +4,6 @@ import time
 import sys
 import unittest
 import importlib.util
-from assignment_utilities.rayon_branch_cov import cov_init, cov_report
 
 
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -19,6 +18,7 @@ import pandas
 import importlib.util
 import networkx
 from assignment_utilities import manual_coverage_helper as mch
+from assignment_utilities.rayon_branch_cov import cov_init, cov_report
 
 pm4py.util.constants.SHOW_PROGRESS_BAR = False
 pm4py.util.constants.SHOW_EVENT_LOG_DEPRECATION = False
