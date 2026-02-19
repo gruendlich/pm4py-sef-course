@@ -4,6 +4,8 @@ import time
 import sys
 import unittest
 import importlib.util
+from assignment_utilities.rayon_branch_cov import cov_init, cov_report
+
 
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parent_dir = os.path.dirname(current_dir)
@@ -411,11 +413,16 @@ if failed > 0:
 
 def main():
     if EXECUTE_TESTS:
+        cov_init("get_base_ocel", slots=100)
+
         mch.init_function("apply_partial_order_projection", slots=20)
         mch.init_function("apply_comparison_symmetric", slots=23)
         runner = unittest.TextTestRunner()
         result = runner.run(suite)
         manual_report = mch.report()
+
+        print("\n--- DIY Branch Coverage (Rayon) ---")
+        print(cov_report())
 
         # Count test-level failures
         test_failures = len(result.failures)

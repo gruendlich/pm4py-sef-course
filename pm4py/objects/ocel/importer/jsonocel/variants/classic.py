@@ -36,6 +36,8 @@ from pm4py.util import (
     pandas_utils,
 )
 from pm4py.objects.log.util import dataframe_utils
+from assignment_utilities.rayon_branch_cov import cov_hit
+
 
 
 class Parameters(Enum):
@@ -49,6 +51,9 @@ class Parameters(Enum):
 
 
 def get_base_ocel(json_obj: Any, parameters: Optional[Dict[Any, Any]] = None):
+    
+    FN = "get_base_ocel"
+
     events = []
     relations = []
     objects = []
@@ -80,15 +85,19 @@ def get_base_ocel(json_obj: Any, parameters: Optional[Dict[Any, Any]] = None):
 
     types_dict = {}
     for obj_id in json_obj[constants.OCEL_OBJECTS_KEY]:
+        cov_hit(FN, 0)
         obj = json_obj[constants.OCEL_OBJECTS_KEY][obj_id]
         obj_type = obj[object_type]
         types_dict[obj_id] = obj_type
         dct = {object_id: obj_id, object_type: obj_type}
         for k, v in obj[constants.OCEL_OVMAP_KEY].items():
+            cov_hit(FN, 1)
             dct[k] = v
         if constants.OCEL_O2O_KEY in obj:
+            cov_hit(FN, 2)
             this_rel_objs = obj[constants.OCEL_O2O_KEY]
             for newel in this_rel_objs:
+                cov_hit(FN, 4)
                 target_id = newel[object_id]
                 qualifier = newel[constants.DEFAULT_QUALIFIER]
                 o2o.append(
@@ -98,9 +107,11 @@ def get_base_ocel(json_obj: Any, parameters: Optional[Dict[Any, Any]] = None):
                         constants.DEFAULT_QUALIFIER: qualifier,
                     }
                 )
+        cov_hit(FN, 3)
         objects.append(dct)
 
     for ev_id in json_obj[constants.OCEL_EVENTS_KEY]:
+        cov_hit(FN, 5)
         ev = json_obj[constants.OCEL_EVENTS_KEY][ev_id]
         dct = {
             event_id: ev_id,
@@ -108,10 +119,13 @@ def get_base_ocel(json_obj: Any, parameters: Optional[Dict[Any, Any]] = None):
             event_activity: ev[event_activity],
         }
         for k, v in ev[constants.OCEL_VMAP_KEY].items():
+            cov_hit(FN, 6)
             dct[k] = v
         this_rel = {}
         for obj in ev[constants.OCEL_OMAP_KEY]:
+            cov_hit(FN, 7)
             if obj in types_dict:
+                cov_hit(FN, 8)
                 this_rel[obj] = {
                     event_id: ev_id,
                     event_activity: ev[event_activity],
@@ -119,20 +133,31 @@ def get_base_ocel(json_obj: Any, parameters: Optional[Dict[Any, Any]] = None):
                     object_id: obj,
                     object_type: types_dict[obj],
                 }
+            else: cov_hit(FN, 9)
         if constants.OCEL_TYPED_OMAP_KEY in ev:
+            cov_hit(FN, 10)
             for element in ev[constants.OCEL_TYPED_OMAP_KEY]:
+                cov_hit(FN, 12)
                 if object_id in element:
+                    cov_hit(FN, 13)
                     key1 = element[object_id]
                     if key1 in this_rel:
+                        cov_hit(FN, 15)
                         this_rel[key1][constants.DEFAULT_QUALIFIER] = element[
                             constants.DEFAULT_QUALIFIER
                         ]
+                    else: cov_hit(FN, 16)
+                else: cov_hit(FN, 14)
+        else: cov_hit(FN, 11)
         for obj in this_rel:
+            cov_hit(FN, 17)
             relations.append(this_rel[obj])
         events.append(dct)
 
     if constants.OCEL_OBJCHANGES_KEY in json_obj:
+        cov_hit(FN, 18)
         object_changes = json_obj[constants.OCEL_OBJCHANGES_KEY]
+    else: cov_hit(FN, 19)
 
     events = pandas_utils.instantiate_dataframe(events)
     objects = pandas_utils.instantiate_dataframe(objects)
@@ -140,6 +165,7 @@ def get_base_ocel(json_obj: Any, parameters: Optional[Dict[Any, Any]] = None):
     # If there are no relations, ensure the dataframe has the expected schema
     # to avoid downstream crashes when accessing required columns.
     if len(relations) == 0:
+        cov_hit(FN, 20)
         relations = pandas_utils.instantiate_dataframe(
             {
                 event_id: [],
@@ -149,23 +175,30 @@ def get_base_ocel(json_obj: Any, parameters: Optional[Dict[Any, Any]] = None):
                 object_type: [],
             }
         )
+    else: cov_hit(FN, 21)
 
     events = pandas_utils.insert_index(
         events, internal_index, reset_index=False, copy_dataframe=False
     )
     # Only add temporary index and sort if there are relations rows
     if len(relations) > 0:
+        cov_hit(FN, 22)
         relations = pandas_utils.insert_index(
             relations, internal_index, reset_index=False, copy_dataframe=False
         )
+    cov_hit(FN, 23)
 
     events = events.sort_values([event_timestamp, internal_index])
     if len(relations) > 0:
+        cov_hit(FN, 24)
         relations = relations.sort_values([event_timestamp, internal_index])
+    else: cov_hit(FN, 25)
 
     del events[internal_index]
     if internal_index in relations.columns:
+        cov_hit(FN, 26)
         del relations[internal_index]
+    else: cov_hit(FN, 27)
 
     globals = {}
     globals[constants.OCEL_GLOBAL_LOG] = json_obj[constants.OCEL_GLOBAL_LOG]
@@ -183,6 +216,7 @@ def get_base_ocel(json_obj: Any, parameters: Optional[Dict[Any, Any]] = None):
         else None
     )
     if object_changes is not None and len(object_changes) > 0:
+        cov_hit(FN, 28)
         object_changes = dataframe_utils.convert_timestamp_columns_in_df(
             object_changes,
             timest_format=pm4_constants.DEFAULT_XES_TIMESTAMP_PARSE_FORMAT,
@@ -191,6 +225,7 @@ def get_base_ocel(json_obj: Any, parameters: Optional[Dict[Any, Any]] = None):
         obj_id_map = objects[[object_id, object_type]].to_dict("records")
         obj_id_map = {x[object_id]: x[object_type] for x in obj_id_map}
         object_changes[object_type] = object_changes[object_id].map(obj_id_map)
+    else: cov_hit(FN, 29)
 
     log = OCEL(
         events=events,
