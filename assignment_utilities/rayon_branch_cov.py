@@ -4,7 +4,9 @@ from typing import Dict, List
 BR_COV: Dict[str, List[bool]] = {}
 
 def cov_init(func: str, slots: int = 100) -> None:
-    BR_COV[func] = [False] * slots
+    global BR_COV
+    BR_COV = {}
+    BR_COV["get_base_ocel"] = {i: False for i in range(30)}
 
 def cov_hit(func: str, branch_id: int) -> None:
 
