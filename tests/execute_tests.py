@@ -5,6 +5,7 @@ import sys
 import unittest
 import importlib.util
 
+
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
@@ -16,6 +17,8 @@ import numpy
 import pandas
 import importlib.util
 import networkx
+from assignment_utilities import manual_coverage_helper as mch
+from assignment_utilities.rayon_branch_cov import cov_init, cov_report
 
 pm4py.util.constants.SHOW_PROGRESS_BAR = False
 pm4py.util.constants.SHOW_EVENT_LOG_DEPRECATION = False
@@ -30,7 +33,8 @@ enabled_tests = [
     "DiagnDfConfChecking", "ProcessModelEvaluationTests", "DecisionTreeTest", "GraphsForming",
     "HeuMinerTest", "MainFactoriesTest", "AlgorithmTest", "LogFilteringTest",
     "DataframePrefilteringTest", "StatisticsLogTest", "StatisticsDfTest", "TransitionSystemTest",
-    "ImpExpFromString", "WoflanTest", "OcelFilteringTest", "OcelDiscoveryTest", "LlmTest"
+    "ImpExpFromString", "WoflanTest", "OcelFilteringTest", "OcelDiscoveryTest", "LlmTest", "wf_net_tests",
+    "ComparisonSymmetricTest", "AlignmentTest"
 ]
 
 if importlib.util.find_spec("polars"):
@@ -57,6 +61,14 @@ if not importlib.util.find_spec("lxml"):
     failed += 1
 
 # Now try to import and add each test class to the suite
+if "AlignmentTest" in enabled_tests:
+    try:
+        from tests.tests_apply import AlignmentTest
+        suite.addTests(loader.loadTestsFromTestCase(AlignmentTest))
+    except:
+        print("AlignmentTest import failed!")
+        failed += 1
+
 if "SimplifiedInterfaceTest" in enabled_tests:
     try:
         from tests.simplified_interface import SimplifiedInterfaceTest
@@ -385,6 +397,23 @@ if "TestPolarsProcessConformance" in enabled_tests:
         print("TestPolarsProcessConformance import failed!")
         failed += 1
 
+if "wf_net_tests" in enabled_tests:
+    try:
+        from tests.test_partial_order_projection import PartialOrderProjectionTest
+        suite.addTests(loader.loadTestsFromTestCase(PartialOrderProjectionTest))
+    except:
+        print("PartialOrderProjectionTest import failed!")
+        failed += 1
+
+if "ComparisonSymmetricTest" in enabled_tests:
+    try:
+        from tests.test_comparison_symmetric import ComparisonSymmetricTest
+        suite.addTests(loader.loadTestsFromTestCase(ComparisonSymmetricTest))
+    except:
+        print("ComparisonSymmetricTest import failed!")
+        failed += 1
+
+
 # If some imports failed, let's wait a little bit
 if failed > 0:
     time.sleep(7.5)
@@ -392,8 +421,17 @@ if failed > 0:
 
 def main():
     if EXECUTE_TESTS:
+        cov_init("get_base_ocel", slots=100)
+
+        mch.init_function("apply_partial_order_projection", slots=20)
+        mch.init_function("apply_comparison_symmetric", slots=23)
+        mch.init_function("apply", slots=20)
         runner = unittest.TextTestRunner()
         result = runner.run(suite)
+        manual_report = mch.report()
+
+        print("\n--- DIY Branch Coverage (Rayon) ---")
+        print(cov_report())
 
         # Count test-level failures
         test_failures = len(result.failures)
@@ -424,6 +462,9 @@ def main():
         print(f"Total passed (including import fails): {total_pass_including_imports}")
         print(f"Total failed (including import fails): {total_fails_including_imports}")
         print(f"Overall pass ratio: {round(pass_ratio * 100, 2)}%")
+
+        print("\n--- Manual Branch Coverage ---")
+        print(f"{manual_report}\n")
 
     # Print library versions
     print("numpy version: " + str(numpy.__version__))

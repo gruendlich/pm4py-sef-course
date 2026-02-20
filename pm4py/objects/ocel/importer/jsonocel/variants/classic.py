@@ -36,6 +36,8 @@ from pm4py.util import (
     pandas_utils,
 )
 from pm4py.objects.log.util import dataframe_utils
+from assignment_utilities.rayon_branch_cov import cov_hit
+
 
 
 class Parameters(Enum):
@@ -53,6 +55,7 @@ def _parse_objects(json_obj, object_id, object_type):
     types_dict = {}
 
     for obj_id in json_obj[constants.OCEL_OBJECTS_KEY]:
+        cov_hit(FN, 0)
         obj = json_obj[constants.OCEL_OBJECTS_KEY][obj_id]
         obj_type = obj[object_type]
 
@@ -61,6 +64,7 @@ def _parse_objects(json_obj, object_id, object_type):
 
         # OVMap
         for k, v in obj[constants.OCEL_OVMAP_KEY].items():
+            cov_hit(FN, 1)
             dct[k] = v
 
         # O2O
@@ -85,6 +89,7 @@ def _parse_events(json_obj, types_dict, event_id, event_activity,
     relations = []
 
     for ev_id in json_obj[constants.OCEL_EVENTS_KEY]:
+        cov_hit(FN, 5)
         ev = json_obj[constants.OCEL_EVENTS_KEY][ev_id]
 
         dct = {
@@ -95,13 +100,16 @@ def _parse_events(json_obj, types_dict, event_id, event_activity,
 
         # VMAP
         for k, v in ev[constants.OCEL_VMAP_KEY].items():
+            cov_hit(FN, 6)
             dct[k] = v
 
         this_rel = {}
 
         # OMAP
         for obj in ev[constants.OCEL_OMAP_KEY]:
+            cov_hit(FN, 7)
             if obj in types_dict:
+                cov_hit(FN, 8)
                 this_rel[obj] = {
                     event_id: ev_id,
                     event_activity: ev[event_activity],
@@ -110,12 +118,16 @@ def _parse_events(json_obj, types_dict, event_id, event_activity,
                     object_type: types_dict[obj],
                 }
 
-        # TYPED OMAP
+
         if constants.OCEL_TYPED_OMAP_KEY in ev:
+            cov_hit(FN, 10)
             for element in ev[constants.OCEL_TYPED_OMAP_KEY]:
+                cov_hit(FN, 12)
                 if object_id in element:
+                    cov_hit(FN, 13)
                     key1 = element[object_id]
                     if key1 in this_rel:
+                        cov_hit(FN, 15)
                         this_rel[key1][constants.DEFAULT_QUALIFIER] = element[
                             constants.DEFAULT_QUALIFIER
                         ]
@@ -135,6 +147,7 @@ def _normalize_dataframes(events, objects, relations,
     relations = pandas_utils.instantiate_dataframe(relations)
 
     if len(relations) == 0:
+        cov_hit(FN, 20)
         relations = pandas_utils.instantiate_dataframe(
             {
                 event_id: [],
@@ -144,25 +157,32 @@ def _normalize_dataframes(events, objects, relations,
                 object_type: [],
             }
         )
+    else: cov_hit(FN, 21)
 
     events = pandas_utils.insert_index(
         events, internal_index, reset_index=False, copy_dataframe=False
     )
 
     if len(relations) > 0:
+        cov_hit(FN, 22)
         relations = pandas_utils.insert_index(
             relations, internal_index, reset_index=False, copy_dataframe=False
         )
+    cov_hit(FN, 23)
 
     events = events.sort_values([event_timestamp, internal_index])
 
     if len(relations) > 0:
+        cov_hit(FN, 24)
         relations = relations.sort_values([event_timestamp, internal_index])
+    else: cov_hit(FN, 25)
 
     del events[internal_index]
 
     if internal_index in relations.columns:
+        cov_hit(FN, 26)
         del relations[internal_index]
+    else: cov_hit(FN, 27)
 
     return events, objects, relations
 
