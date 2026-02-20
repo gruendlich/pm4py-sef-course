@@ -21,9 +21,9 @@ Once everything was installed the build concluded automatically without any erro
 ~~~
 apply_partial_order_projection: 16 CCN
 comparison_symmetric.py: 27 CCN
-ocel_consistency.py: 16 CCN
-to_petri_net.py: 52 CCN
 get_base_ocel.py: 24 CCN
+to_petri_net.py: 52 CCN
+ocel_consistency.py: 16 CCN
 ~~~
 
 #### Manually Calculated
@@ -31,10 +31,10 @@ get_base_ocel.py: 24 CCN
 Complexity calculated by 1 + Number of (if, else, for, while) (McCabe)
 ~~~
 apply_partial_order_projection: 16
-ocel_consistency.py: 16
+comparison_symmetric.py: 28
 get_base_ocel: 24
 to_petri_net.py: 38
-comparison.symmetric.py: 28
+ocel_consistency.py: 16
 ~~~
 
 In our opinion, there are multiple branches that easily can be merged together to reduce complexity, for example, without the need to divide the functionality into subsequent functions. However, whether the reduction of branches always results in more readable code in this particular case remains a point of discussion. The only exception to this would be the function in to_petri_net.py where the high CC comes from the need to switch logic based on the specific type of BPMN element being processed.
@@ -134,59 +134,12 @@ Just doing this would remove 4 for-loops and 6 if-statements from the apply func
 
 We used coverage.py to calculate the coverage of our code and it was really straighforward with no issues as it is a well documented and tested tool.
 
-~~~
-### Your own coverage tool
+Our tool is merely a [helper tool](https://github.com/gruendlich/pm4py-sef-course/blob/student-main/assignment_utilities/manual_coverage_helper.py) to aid in manual instrumentation of functions. Hence it supports any kind of logical branching as long as you can call functions from that branch.
 
-Show a patch (or link to a branch) that shows the instrumented code to
-gather coverage measurements.
+Code example to record that a branch has been called at least once:
+hit(<function_name>, <branch>)
 
-The patch is probably too long to be copied here, so please add
-the git command that is used to obtain the patch instead:
-
-git diff ...
-
-What kinds of constructs does your tool support, and how accurate is
-its output?
-
-### Evaluation
-
-1. How detailed is your coverage measurement?
-
-2. What are the limitations of your own tool?
-
-3. Are the results of your tool consistent with existing coverage tools?
-
-## Coverage improvement
-
-Show the comments that describe the requirements for the coverage.
-
-Report of old coverage: [link]
-
-Report of new coverage: [link]
-
-Test cases added:
-
-git diff ...
-
-Number of test cases added: two per team member (P) or at least four (P+).
-
-## Self-assessment: Way of working
-
-Current state according to the Essence standard: ...
-
-Was the self-assessment unanimous? Any doubts about certain items?
-
-How have you improved so far?
-
-Where is potential for improvement?
-
-## Overall experience
-
-What are your main take-aways from this project? What did you learn?
-
-Is there something special you want to mention here?
-
-~~~
+As long as this is added to any part that should be included into the counting of the coverage, it 
 
 ## Contributions:
 **Adrian Grund** (Github: gruendlich): Worked with the to_powl.py file, manually instrumenting and analysing it and adding unittests. Also wrote our manual coverage check tool. 
