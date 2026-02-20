@@ -28,9 +28,7 @@ class TestGetBaseOcel(unittest.TestCase):
             OCEL_EVENTS_KEY: {},
         }
 
-    # --------------------------------------------------
-    # Test 1 – Empty relations branch (hits cov_hit 20)
-    # --------------------------------------------------
+
     def test_empty_relations(self):
         json_obj = self.build_globals()
 
@@ -52,14 +50,10 @@ class TestGetBaseOcel(unittest.TestCase):
 
         log = get_base_ocel(json_obj)
 
-        # Meaningful assertions
         self.assertEqual(len(log.events), 1)
         self.assertEqual(len(log.relations), 0)
 
 
-    # --------------------------------------------------
-    # Test 2 – Missing object reference (hits cov_hit 9)
-    # --------------------------------------------------
     def test_missing_object_reference(self):
         json_obj = self.build_globals()
 
@@ -75,14 +69,59 @@ class TestGetBaseOcel(unittest.TestCase):
                 constants.DEFAULT_EVENT_ACTIVITY: "act",
                 constants.DEFAULT_EVENT_TIMESTAMP: "2020-01-01T00:00:00",
                 OCEL_VMAP_KEY: {},
-                OCEL_OMAP_KEY: ["o2"],  # object does not exist
+                OCEL_OMAP_KEY: ["o2"], 
             }
         }
 
         log = get_base_ocel(json_obj)
 
-        # Event is created
         self.assertEqual(len(log.events), 1)
 
-        # No relations created because object missing
         self.assertEqual(len(log.relations), 0)
+
+    def test_single_valid_relation(self):
+        json_obj = self.build_globals()
+
+        json_obj[OCEL_OBJECTS_KEY] = {
+            "o1": {
+                constants.DEFAULT_OBJECT_TYPE: "typeA",
+                OCEL_OVMAP_KEY: {},
+            }
+        }
+
+        json_obj[OCEL_EVENTS_KEY] = {
+            "e1": {
+                constants.DEFAULT_EVENT_ACTIVITY: "act",
+                constants.DEFAULT_EVENT_TIMESTAMP: "2020-01-01T00:00:00",
+                OCEL_VMAP_KEY: {},
+                OCEL_OMAP_KEY: ["o1"],
+            }
+        }
+
+        log = get_base_ocel(json_obj)
+
+        self.assertEqual(len(log.relations), 1)
+
+    def test_object_changes_present(self):
+        json_obj = self.build_globals()
+
+        json_obj[OCEL_OBJECTS_KEY] = {
+            "o1": {
+                constants.DEFAULT_OBJECT_TYPE: "typeA",
+                OCEL_OVMAP_KEY: {},
+            }
+        }
+
+        json_obj[OCEL_EVENTS_KEY] = {}
+
+        json_obj[OCEL_OBJCHANGES_KEY] = [
+            {
+                constants.DEFAULT_OBJECT_ID: "o1",
+                constants.DEFAULT_EVENT_TIMESTAMP: "2020-01-01T00:00:00",
+            }
+        ]
+
+        log = get_base_ocel(json_obj)
+
+        self.assertIsNotNone(log.object_changes)
+        self.assertEqual(len(log.object_changes), 1)
