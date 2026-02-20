@@ -1,9 +1,9 @@
 # Team Assessment (SEMAT Essence Standard)
 
-**State:** Formed
+**State:** Between Foundation Established and In Use
 
 **Assessment:**
 
-Our team remains in the Formed state. We understand the goals of the assignment and continue to communicate regularly. However, this project involved more individual work, so members progressed largely at their own pace. Coordination was sometimes difficult due to conflicting schedules during exam season, which made it harder to align fully on timing and details. Our workflow and tool usage remained consistent, but deeper collaboration was limited compared to earlier projects.
+Our team’s Way of Working is currently between the Foundation Established and In Use states. The principles and practices that guide our development are clearly defined, with reliability serving as our primary focus. We require all tests to pass before merging any branch into the main branch to maintain system stability. Each team member works on an individual branch to reduce integration risk and protect shared code.
 
-To progress to the next state, we need to improve synchronization during busy periods, strengthen accountability to shared timelines, and ensure that communication leads to clearer alignment and mutual support across tasks.
+When issues arise, we prioritize resolving them before continuing new development. We aim to deliver features end to end to ensure that each increment is functional and complete. Decisions are made collaboratively to preserve shared ownership and alignment. While scheduling constraints occasionally create gaps in consistency, the team recognizes these limitations and remains committed to applying its agreed practices.
